@@ -50,7 +50,10 @@ li $s5, 0x00ff00 # green
 li $s4, 0x0000ff # blue
 li $s3, 0x686868 # grey
 li $s2, 0xffffff # white
-		
+
+addi	$a0,	$zero, 	3456
+addi	$a1,	$zero,	60
+			
 # Main
 main:	
 	### Goal Region
@@ -58,21 +61,21 @@ main:
 	sw	$zero,	0($t0)
 	addi 	$t2,	$zero,	0 	
 	addi	$t9,	$zero,	192
-	add	$a0,	$zero,	$s5
+	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
 	### Water
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
 	addi 	$t2,	$zero,	192	
 	addi	$t9,	$zero,	384
-	add	$a0,	$zero,	$s4
+	add	$a3,	$zero,	$s4
 	jal draw_rect_loop
 	### Safe
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
 	addi 	$t2,	$zero,	384	
 	addi	$t9,	$zero,	576
-	add	$a0,	$zero,	$s5
+	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
 	### Road
 	#Vehicles
@@ -82,22 +85,21 @@ main:
 	sw	$zero,	0($t0)
 	addi 	$t2,	$zero,	576	
 	addi	$t9,	$zero,	768
-	add	$a0,	$zero,	$s3
+	add	$a3,	$zero,	$s3
 	jal draw_rect_loop
 	### Start
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
 	addi 	$t2,	$zero,	768	
 	addi	$t9,	$zero,	960
-	add	$a0,	$zero,	$s5
+	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
 	
 	### Draw Frog
 	lw	$s7,	displayAddress	#reset display addr
 	la	$t3,	frog_x		#load addr of frog_x
 	la	$t4,	frog_y		#load addr of frog_y
-	addi	$a0,	$zero, 	3456
-	addi	$a1,	$zero,	60
+	
 	jal 	draw_frog
 	
 	j Exit
@@ -107,7 +109,7 @@ main:
 # HELP: I CANT FIGURE OUT HOW TO MAKE A RECTANGLE IN THE MIDDLE	
 draw_rect_loop:	
 	beq	$t2,	$t9,	draw_rect_exit
-	sw 	$a0, 	0($s7)		# draw rect
+	sw 	$a3, 	0($s7)		# draw rect
 	addi	$s7,	$s7,	4	# increment address by 4
 	addi	$t2,	$t2,	1
 	j draw_rect_loop
@@ -116,7 +118,7 @@ draw_rect_exit:
 	jr	$ra
 
 draw_frog:
-	add	$s7,	$s7,	$a0	# HELP: I HARDCODED THE X AND Y, HOW WOULD I MAKE IT VARIABLE??
+	add	$s7,	$s7,	$a0
 	add	$s7,	$s7,	$a1
 	sw	$s2,	0($s7)	# source, offset(destination)
 	sw	$s2,	4($s7)
@@ -127,12 +129,12 @@ draw_frog:
 	sw	$s2,	256($s7)
 	sw	$s2,	260($s7)
 	sw	$s2,	264($s7)
-
+	
+	jr $ra
 
 ########################################################
 #
 # Exit Function	
 Exit:
 	li 	$v0,	10
-	syscall		
-
+	syscall
