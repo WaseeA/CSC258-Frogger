@@ -213,18 +213,10 @@ draw_frog:
 	# return to line of code
 	jr $ra
 
-############
-# Movement #
-############
-move_frog_down:
-	subi,	$t0,	$t0,	20	# move the frog up 20 units
-	jal	init_gr			# draw the background
-	jal	draw_frog		# call the draw frog function
-
 ########
 # Main #
 ########
-main:
+update_objects:
 	### Init Draw Objects
 	# frog
 	lw	$t0,	displayAddress 		# reset the display address
@@ -252,6 +244,9 @@ main:
 	addi	$s1,	$s1,	768		# increment to the third row
 	addi,	$s1,	$s1,	300		# increment car to starting position
 	jal 	draw_log			# call the draw car function
+
+main:
+	jal update_objects			# initalize the objects
 	
 	### Check for input			# $s7 = key press input
 	lw 	$s7, 	0xffff0004		# check if a is pressed
@@ -261,8 +256,16 @@ main:
 	addi	$a0,	$zero,	16	# 16ms gives us 60fps
 	syscall
 	
-	beq	$s7,	1,	move_frog_down	# move the frog down
+	bne $s7, 97, move_frog_down
 	
+############
+# Movement #
+############
+move_frog_down:
+	addi,	$t0,	$t0,	20	# move the frog up 20 units
+	jal	init_gr			# draw the background
+	jal	draw_frog		# call the draw frog function
+	j Exit
 
 Exit:
 li $v0, 10 # terminate the program gracefully
