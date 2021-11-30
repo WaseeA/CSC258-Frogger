@@ -48,8 +48,8 @@ lw $t0, displayAddress  # $t0 stores the base address for display
 li $t1, 0xff0000 	# $t1 stores the red colour code
 li $t2, 0x00ff00 	# $t2 stores the green colour code
 li $t3, 0x0000ff 	# $t3 stores the blue colour code
-li $t8, 0x00ffff	# $t4 stores aqua colour code
 li $t7, 0xffffff	# $t7 stores the white colour code
+li $t8, 0x00ffff	# $t4 stores aqua colour code
 
 sw $t1, 0($t0)		# paint the first (top-left) unit red. (store t1 in t0 with offset 0)
 sw $t2, 4($t0)		# paint the second unit on the first row green. Why $t0+4?
@@ -139,35 +139,85 @@ draw_loop_s:
 #########################
 # DRAWING OBJECT REGION #
 #########################
-draw_frog:	
+draw_car:	
 	# first row
-	sw 	$t8, 	0($t0)		# draw aqua box
-	sw 	$t8, 	4($t0)		# draw aqua box
+	sw 	$t8, 	0($s0)		# draw aqua box
+	sw 	$t8, 	4($s0)		# draw aqua box
+	sw 	$t8, 	8($s0)		# draw aqua box
+	sw 	$t8, 	12($s0)		# draw aqua box
 	# second row
-	sw 	$t8, 	128($t0)	# draw aqua box
-	sw 	$t8, 	132($t0)	# draw aqua box
+	sw 	$t8, 	128($s0)	# draw aqua box
+	sw 	$t8, 	132($s0)	# draw aqua box
+	sw 	$t8, 	136($s0)	# draw aqua box
+	sw 	$t8, 	140($s0)	# draw aqua box
+	# third row
+	sw 	$t8, 	256($s0)	# draw red box
+	sw 	$t8, 	260($s0)	# draw red box
+	sw 	$t8, 	264($s0)	# draw red box
+	sw 	$t8, 	268($s0)	# draw red box
+	# fourth row
+	sw 	$t8, 	384($s0)	# draw red box
+	sw 	$t8, 	388($s0)	# draw red box
+	sw 	$t8, 	392($s0)	# draw red box
+	sw 	$t8, 	396($s0)	# draw red box
+	
 	# return to line of code
 	jr $ra
 
 draw_log:	
 	# first row
+	# first row
+	sw 	$t1, 	0($s1)		# draw aqua box
+	sw 	$t1, 	4($s1)		# draw aqua box
+	sw 	$t1, 	8($s1)		# draw aqua box
+	sw 	$t1, 	12($s1)		# draw aqua box
+	# second row
+	sw 	$t1, 	128($s1)	# draw aqua box
+	sw 	$t1, 	132($s1)	# draw aqua box
+	sw 	$t1, 	136($s1)	# draw aqua box
+	sw 	$t1, 	140($s1)	# draw aqua box
+	# third row
+	sw 	$t1, 	256($s1)	# draw red box
+	sw 	$t1, 	260($s1)	# draw red box
+	sw 	$t1, 	264($s1)	# draw red box
+	sw 	$t1, 	268($s1)	# draw red box
+	# fourth row
+	sw 	$t1, 	384($s1)	# draw red box
+	sw 	$t1, 	388($s1)	# draw red box
+	sw 	$t1, 	392($s1)	# draw red box
+	sw 	$t1, 	396($s1)	# draw red box
+	jr $ra
+
+draw_frog:	
+	# first row
+	sw 	$t7, 	0($t0)	# draw white box
+	sw 	$t7, 	4($t0)	# draw white box
+	sw 	$t7	8($t0)
+	sw 	$t7, 	12($t0)
+	# second row
 	sw 	$t7, 	128($t0)	# draw white box
 	sw 	$t7, 	132($t0)	# draw white box
 	sw 	$t7	136($t0)
 	sw 	$t7, 	140($t0)	
-	# second row
+	# third row
 	sw 	$t7, 	256($t0)	# draw white box
 	sw 	$t7, 	260($t0)	# draw white box
 	sw 	$t7	264($t0)
 	sw 	$t7, 	268($t0)
+	# fourth row
+	sw 	$t7, 	384($t0)	# draw white box
+	sw 	$t7, 	388($t0)	# draw white box
+	sw 	$t7	392($t0)
+	sw 	$t7, 	396($t0)
+	
 	# return to line of code
 	jr $ra
 
 ############
 # Movement #
 ############
-move_frog_up:
-	addi,	$t0,	$t0,	20	# move the frog up 20 units
+move_frog_down:
+	subi,	$t0,	$t0,	20	# move the frog up 20 units
 	jal	init_gr			# draw the background
 	jal	draw_frog		# call the draw frog function
 
@@ -175,23 +225,44 @@ move_frog_up:
 # Main #
 ########
 main:
+	### Init Draw Objects
+	# frog
 	lw	$t0,	displayAddress 		# reset the display address
-	addi,	$t0,	$t0,	20		# increment frog to starting position
+	addi,	$t0,	$t0,	3584		# increment to bottom row
+	addi,	$t0,	$t0,	60		# increment frog to starting position
 	jal 	draw_frog			# call the draw frog function
 	
-	lw	$t0,	displayAddress 		# reset the display address
-	addi,	$t0,	$t0,	100		# increment log to starting position
-	jal 	draw_log			# call the draw frog function
+	# car 1
+	lw	$s0,	displayAddress 		# reset the display address
+	addi	$s0,	$s0,	2560		# increment to the second last row
+	addi,	$s0,	$s0,	100		# increment car to starting position
+	jal 	draw_car			# call the draw car function
+	# car 2
+	lw	$s0,	displayAddress 		# reset the display address
+	addi	$s0,	$s0,	2816		# increment to the 2nd last row
+	addi,	$s0,	$s0,	300		# increment car to starting position
+	jal 	draw_car			# call the draw car function
+	# log 1
+	lw	$s1,	displayAddress 		# reset the display address
+	addi	$s1,	$s1,	512		# increment to the third row
+	addi,	$s1,	$s1,	100		# increment car to starting position
+	jal 	draw_log			# call the draw car function
+	#log 2
+	lw	$s1,	displayAddress 		# reset the display address
+	addi	$s1,	$s1,	768		# increment to the third row
+	addi,	$s1,	$s1,	300		# increment car to starting position
+	jal 	draw_log			# call the draw car function
 	
-	# beq move frog up/down/left/right
-	# in each of those classes we will first redraw the screen
-	lw 	$s1, 	0xffff0004		# check if a is pressed
-	beq	$s1,	1,	move_frog_up	# move the frog up
+	### Check for input			# $s7 = key press input
+	lw 	$s7, 	0xffff0004		# check if a is pressed
 	
 	# Frame rate
 	addi	$v0,	$zero,	32	# Syscall sleep
 	addi	$a0,	$zero,	16	# 16ms gives us 60fps
 	syscall
+	
+	beq	$s7,	1,	move_frog_down	# move the frog down
+	
 
 Exit:
 li $v0, 10 # terminate the program gracefully
