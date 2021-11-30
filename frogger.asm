@@ -36,6 +36,7 @@
 
 .data
 displayAddress:	.word 0x10008000
+RESULT_FROG:	.word 0
 gr:	.space	4
 wr:	.space 	4
 sr:	.space	4
@@ -48,6 +49,7 @@ li $t1, 0xff0000 	# $t1 stores the red colour code
 li $t2, 0x00ff00 	# $t2 stores the green colour code
 li $t3, 0x0000ff 	# $t3 stores the blue colour code
 li $t8, 0x00ffff	# $t4 stores aqua colour code
+li $t7, 0xffffff	# $t7 stores the white colour code
 
 sw $t1, 0($t0)		# paint the first (top-left) unit red. (store t1 in t0 with offset 0)
 sw $t2, 4($t0)		# paint the second unit on the first row green. Why $t0+4?
@@ -127,7 +129,7 @@ init_s:
 	addi	$t9,	$zero,	4096	# set end = 4096 (bottom)
 
 draw_loop_s:	
-	beq	$t6,	$t9,	Exit	# i == 248?
+	beq	$t6,	$t9,	main	# i == 248?
 	addi	$t6,	$t6,	4	# i = i + 4
 	sw	$t6,	0($t4)		# store t4 in temp
 	sw 	$t2, 	0($t0)		# draw green box
@@ -137,7 +139,59 @@ draw_loop_s:
 #########################
 # DRAWING OBJECT REGION #
 #########################
+draw_frog:	
+	# first row
+	sw 	$t8, 	0($t0)		# draw aqua box
+	sw 	$t8, 	4($t0)		# draw aqua box
+	# second row
+	sw 	$t8, 	128($t0)	# draw aqua box
+	sw 	$t8, 	132($t0)	# draw aqua box
+	# return to line of code
+	jr $ra
 
+draw_log:	
+	# first row
+	sw 	$t7, 	128($t0)	# draw white box
+	sw 	$t7, 	132($t0)	# draw white box
+	sw 	$t7	136($t0)
+	sw 	$t7, 	140($t0)	
+	# second row
+	sw 	$t7, 	256($t0)	# draw white box
+	sw 	$t7, 	260($t0)	# draw white box
+	sw 	$t7	264($t0)
+	sw 	$t7, 	268($t0)
+	# return to line of code
+	jr $ra
+
+############
+# Movement #
+############
+move_frog_up:
+	addi,	$t0,	$t0,	20	# move the frog up 20 units
+	jal	init_gr			# draw the background
+	jal	draw_frog		# call the draw frog function
+
+########
+# Main #
+########
+main:
+	lw	$t0,	displayAddress 		# reset the display address
+	addi,	$t0,	$t0,	20		# increment frog to starting position
+	jal 	draw_frog			# call the draw frog function
+	
+	lw	$t0,	displayAddress 		# reset the display address
+	addi,	$t0,	$t0,	100		# increment log to starting position
+	jal 	draw_log			# call the draw frog function
+	
+	# beq move frog up/down/left/right
+	# in each of those classes we will first redraw the screen
+	lw 	$s1, 	0xffff0004		# check if a is pressed
+	beq	$s1,	1,	move_frog_up	# move the frog up
+	
+	# Frame rate
+	addi	$v0,	$zero,	32	# Syscall sleep
+	addi	$a0,	$zero,	16	# 16ms gives us 60fps
+	syscall
 
 Exit:
 li $v0, 10 # terminate the program gracefully
