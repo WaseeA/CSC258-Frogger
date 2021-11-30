@@ -15,7 +15,7 @@
 # Which milestone is reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
 # - Milestone 1/2/3/4/5 (choose the one the applies)
-#
+# 1
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
 # 1. (fill in the feature, if any)
@@ -51,10 +51,6 @@ li $t3, 0x0000ff 	# $t3 stores the blue colour code
 li $t7, 0xffffff	# $t7 stores the white colour code
 li $t8, 0x00ffff	# $t4 stores aqua colour code
 
-sw $t1, 0($t0)		# paint the first (top-left) unit red. (store t1 in t0 with offset 0)
-sw $t2, 4($t0)		# paint the second unit on the first row green. Why $t0+4?
-sw $t3, 128($t0)	# paint the first unit on the second row blue. Why +128?
-
 ########################
 # DRAWING SCENE REGION #
 ########################
@@ -62,7 +58,7 @@ sw $t3, 128($t0)	# paint the first unit on the second row blue. Why +128?
 #Goal Region Draw Loop (gr)
 init_gr:	
 	la	$t4,	gr 	# load addr of i into t4
-	sw	$zero,	0($t4)	# set reg i to 0
+	sw	$t5,	0($t4)	# set reg i to 0
 	add	$t6,	$zero,	$zero	# set mem i to 0
 	addi	$t9,	$zero,	512	# set end = 512
 
@@ -77,7 +73,7 @@ draw_loop_gr:
 #Water Region Draw Loop (wr)
 init_wr:	
 	la	$t4,	wr 	# load addr of i into t4
-	sw	$zero,	0($t4)	# set reg i to 512
+	sw	$t5,	0($t4)	# set reg i to 512
 	add	$t6,	$zero,	512	# set mem i to 512
 	addi	$t9,	$zero,	1536	# set end = 1536
 
@@ -92,7 +88,7 @@ draw_loop_wr:
 #Safe Region Draw Loop
 init_sr:	
 	la	$t4,	sr	# load addr of i into t4
-	sw	$zero,	0($t4)	# set reg i to 0
+	sw	$t5,	0($t4)	# set reg i to 0
 	add	$t6,	$zero,	1536	# set mem i to 1536
 	addi	$t9,	$zero,	2560	# set end = 2560
 
@@ -108,7 +104,7 @@ draw_loop_sr:
 # no drawing! included to be explicit
 init_rr:	
 	la	$t4,	sr	# load addr of i into t4
-	sw	$zero,	0($t4)	# set reg i to 0
+	sw	$t5,	0($t4)	# set reg i to 0
 	add	$t6,	$zero,	2560	# set mem i to 2560
 	addi	$t9,	$zero,	3584	# set end = 3584
 
@@ -121,10 +117,9 @@ draw_loop_rr:
 	j draw_loop_rr
 
 #Start Region Draw Loop (s)
-# no drawing! included to be explicit
 init_s:	
 	la	$t4,	s	# load addr of i into t4
-	sw	$zero,	0($t4)	# set reg i to 0
+	sw	$t5,	0($t4)	# set reg i to 0
 	add	$t6,	$zero,	3584	# set mem i to 0
 	addi	$t9,	$zero,	4096	# set end = 4096 (bottom)
 
@@ -249,23 +244,34 @@ main:
 	jal update_objects			# initalize the objects
 	
 	### Check for input			# $s7 = key press input
-	lw 	$s7, 	0xffff0004		# check if a is pressed
+	lw $s7, 0xffff0000
+	beq $s7, 1, keyboard_input
 	
 	# Frame rate
 	addi	$v0,	$zero,	32	# Syscall sleep
 	addi	$a0,	$zero,	16	# 16ms gives us 60fps
 	syscall
 	
-	bne $s7, 97, move_frog_down
+	j main
+	
+keyboard_input:
+	lw 	$s6, 0xffff0004
+	beq	$s6, 0x61, respond_to_A
 	
 ############
 # Movement #
 ############
-move_frog_down:
+respond_to_A:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	
 	addi,	$t0,	$t0,	20	# move the frog up 20 units
 	jal	init_gr			# draw the background
 	jal	draw_frog		# call the draw frog function
-	j Exit
+	
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
 
 Exit:
 li $v0, 10 # terminate the program gracefully
