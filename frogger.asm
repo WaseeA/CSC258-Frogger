@@ -46,14 +46,32 @@ vehicle_space:	.space	36
 
 .text
 lw $s7, displayAddress
-li $s6, 0xff0000 # red
 li $s5, 0x00ff00 # green
 li $s4, 0x0000ff # blue
 li $s3, 0x686868 # grey
 li $s2, 0xffffff # white
-			
+
+# removed s6 colour for more space...			
+		
+keyboard_input:
+	lw $t2, 0xffff0004
+	beq $t2, 0x61, respond_to_A
+	j main	# if we don't get a valid input go to main again
+
+respond_to_A:
+	add	$a0,	$a0,	$zero
+	# increment by 20
+	addi	$a0,	$a0,	-20
+	addi	$a1,	$a1,	0
+
+# to reset move 64, 65 down
+
 # Main
 main:	
+	# check for keyboard input
+	lw $t8, 0xffff0000
+	beq $t8, 1, keyboard_input
+	
 	### Goal Region
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
@@ -94,17 +112,17 @@ main:
 	jal draw_rect_loop
 	
 	### Draw Frog
-
-	
 	lw	$s7,	displayAddress	#reset display addr
 	la	$t3,	frogX		#load addr of frog_x
 	la	$t4,	frogY		#load addr of frog_y
 	
 	jal 	draw_frog
 	
+	add	$s6,	$a0,	$zero 	# temporarily save a0
 	li $v0, 32
 	li $a0, 2000
 	syscall
+	add	$a0,	$s6,	$zero 	# reset a0
 	
 	j main
 
@@ -123,9 +141,6 @@ draw_frog:
 	# get value of frogX and frogY
 	lw	$s0,	0($t3)
 	lw	$s1,	0($t4)
-	# increment by 20
-	addi	$a0,	$a0,	20
-	addi	$a1,	$a1,	20
 	
 	add	$s7,	$s7,	$a0	# s7 cgets changed)
 	add	$s7,	$s7,	$a1
