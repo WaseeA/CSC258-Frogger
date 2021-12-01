@@ -1,3 +1,4 @@
+
 #####################################################################
 #
 # CSC258H5S Fall 2021 Assembly Final Project
@@ -39,8 +40,8 @@
 .data
 displayAddress: .word 0x10008000
 i:	.space	4	# random loop var
-frog_x:	.space	1
-frog_y:	.space	1
+frogX:	.word	60
+frogY:	.word	3456
 vehicle_space:	.space	36
 
 .text
@@ -50,9 +51,6 @@ li $s5, 0x00ff00 # green
 li $s4, 0x0000ff # blue
 li $s3, 0x686868 # grey
 li $s2, 0xffffff # white
-
-addi	$a0,	$zero, 	3456
-addi	$a1,	$zero,	60
 			
 # Main
 main:	
@@ -96,17 +94,21 @@ main:
 	jal draw_rect_loop
 	
 	### Draw Frog
+
+	
 	lw	$s7,	displayAddress	#reset display addr
-	la	$t3,	frog_x		#load addr of frog_x
-	la	$t4,	frog_y		#load addr of frog_y
+	la	$t3,	frogX		#load addr of frog_x
+	la	$t4,	frogY		#load addr of frog_y
 	
 	jal 	draw_frog
 	
-	j Exit
+	li $v0, 32
+	li $a0, 2000
+	syscall
+	
+	j main
 
 #########################################################
-#
-# HELP: I CANT FIGURE OUT HOW TO MAKE A RECTANGLE IN THE MIDDLE	
 draw_rect_loop:	
 	beq	$t2,	$t9,	draw_rect_exit
 	sw 	$a3, 	0($s7)		# draw rect
@@ -118,7 +120,14 @@ draw_rect_exit:
 	jr	$ra
 
 draw_frog:
-	add	$s7,	$s7,	$a0
+	# get value of frogX and frogY
+	lw	$s0,	0($t3)
+	lw	$s1,	0($t4)
+	# increment by 20
+	addi	$a0,	$a0,	20
+	addi	$a1,	$a1,	20
+	
+	add	$s7,	$s7,	$a0	# s7 cgets changed)
 	add	$s7,	$s7,	$a1
 	sw	$s2,	0($s7)	# source, offset(destination)
 	sw	$s2,	4($s7)
@@ -130,10 +139,17 @@ draw_frog:
 	sw	$s2,	260($s7)
 	sw	$s2,	264($s7)
 	
+	# reset the display address, since we don't want the bckgrnd to change.
+	sub	$s7,	$s7,	$a0
+	sub	$s7,	$s7,	$a1
+	
 	jr $ra
 
 ########################################################
-#
+
+
+
+########################################################
 # Exit Function	
 Exit:
 	li 	$v0,	10
