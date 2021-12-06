@@ -42,7 +42,7 @@ displayAddress: .word 0x10008000
 i:	.space	4	# random loop var
 frogX:	.word	60
 frogY:	.word	3456
-vehicle_space:	.space	36
+vehicle_space:	.space	36	# 3x3 = 9 (3x3 vehicles), 9 * 2 = 18 (2 vehicles) 18 *2 = 36 (2 rows)
 
 .text
 lw $s7, displayAddress
@@ -51,20 +51,52 @@ li $s4, 0x0000ff # blue
 li $s3, 0x686868 # grey
 li $s2, 0xffffff # white
 
-# removed s6 colour for more space...			
+add	$t1,	$zero,	$zero
+
+# temp variable: $s6
+# $t2, $t8: keyboard input
+# $a0, $a1 used for moving frog
+# 			
 		
 keyboard_input:
 	lw $t2, 0xffff0004
+	beq $t2, 0x77, respond_to_W
 	beq $t2, 0x61, respond_to_A
+	beq $t2, 0x64, respond_to_D
+	beq $t2, 0x73, respond_to_S
 	j main	# if we don't get a valid input go to main again
 
-respond_to_A:
-	add	$a0,	$a0,	$zero
-	# increment by 20
-	addi	$a0,	$a0,	-20
-	addi	$a1,	$a1,	0
+respond_to_W:
+	beq 	$a1,	$zero,	wrap_handler_vertical
+	# increment by 8
+	addi	$a0,	$a0,	0
+	addi	$a1,	$a1,	-128
+	j main
 
-# to reset move 64, 65 down
+respond_to_A:
+	beq 	$a0,	-128,	wrap_handler_horizontal
+	beq	$a0,	$zero,	wrap_handler_horizontal
+	# increment by 8
+	addi	$a0,	$a0,	-8
+	addi	$a1,	$a1,	0
+	
+	j main
+
+respond_to_S:
+	beq 	$a1,	3456,	wrap_handler_vertical
+	# increment by 8
+	addi	$a0,	$a0,	0
+	addi	$a1,	$a1,	128
+	
+	j main
+	
+respond_to_D:
+	beq 	$a0,	128,	wrap_handler_horizontal
+	# increment by 8
+	addi	$a0,	$a0,	8
+	addi	$a1,	$a1,	0
+	
+	j main
 
 # Main
 main:	
@@ -75,41 +107,66 @@ main:
 	### Goal Region
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
-	addi 	$t2,	$zero,	0 	
-	addi	$t9,	$zero,	192
+	
+	lw	$t2,	displayAddress	#reset display addr
+	lw	$t9,	displayAddress	#reset display addr
+	
+	addi 	$t2,	$t2,	0 	
+	addi	$t9,	$t9,	192
 	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
+	
 	### Water
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
-	addi 	$t2,	$zero,	192	
-	addi	$t9,	$zero,	384
+	
+	lw	$t2,	displayAddress	#reset display addr
+	lw	$t9,	displayAddress	#reset display addr
+	
+	addi 	$t2,	$t2,	192	
+	addi	$t9,	$t9,	384
 	add	$a3,	$zero,	$s4
 	jal draw_rect_loop
 	### Safe
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
-	addi 	$t2,	$zero,	384	
-	addi	$t9,	$zero,	576
+	
+	lw	$t2,	displayAddress	#reset display addr
+	lw	$t9,	displayAddress	#reset display addr
+	
+	addi 	$t2,	$t2,	384	
+	addi	$t9,	$t9,	576
 	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
 	### Road
-	#Vehicles
-	
-	# The Road itself
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
-	addi 	$t2,	$zero,	576	
-	addi	$t9,	$zero,	768
+	
+	lw	$t2,	displayAddress	#reset display addr
+	lw	$t9,	displayAddress	#reset display addr
+	
+	addi 	$t2,	$t2,	576	
+	addi	$t9,	$t9,	768
 	add	$a3,	$zero,	$s3
 	jal draw_rect_loop
+	
 	### Start
 	la	$t0,	i		#load addr of i
 	sw	$zero,	0($t0)
-	addi 	$t2,	$zero,	768	
-	addi	$t9,	$zero,	960
+	
+	lw	$t2,	displayAddress	#reset display addr
+	lw	$t9,	displayAddress	#reset display addr
+	
+	addi 	$t2,	$t2,	768	
+	addi	$t9,	$t9,	960
 	add	$a3,	$zero,	$s5
 	jal draw_rect_loop
+	
+	### Draw Vehicles
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	768	#increment to the desired spot.
+	add	$t1,	$t1,	4
+	jal draw_vehicles
 	
 	### Draw Frog
 	lw	$s7,	displayAddress	#reset display addr
@@ -118,21 +175,32 @@ main:
 	
 	jal 	draw_frog
 	
+	### Sleep
 	add	$s6,	$a0,	$zero 	# temporarily save a0
-	li $v0, 32
-	li $a0, 2000
+	li $v0, 32	
+	li $a0, 200	#TODO: use 32 for 60 fps
 	syscall
 	add	$a0,	$s6,	$zero 	# reset a0
 	
 	j main
 
 #########################################################
+check_collision:
+	# collison event
+	lw $t4, 0($s7) # load colour into t4
+	beq $t4, $s4, Exit # if the colour is blue exit
+	jr $ra
+
+#########################################################
 draw_rect_loop:	
+	# begin the loop
 	beq	$t2,	$t9,	draw_rect_exit
 	sw 	$a3, 	0($s7)		# draw rect
 	addi	$s7,	$s7,	4	# increment address by 4
-	addi	$t2,	$t2,	1
+	addi	$t2,	$t2,	1	# increment the loop condition
 	j draw_rect_loop
+
+draw_log_loop:
 
 draw_rect_exit:
 	jr	$ra
@@ -142,8 +210,18 @@ draw_frog:
 	lw	$s0,	0($t3)
 	lw	$s1,	0($t4)
 	
-	add	$s7,	$s7,	$a0	# s7 cgets changed)
+	# s7 gets changed
+	add	$s7,	$s7,	$a0	
 	add	$s7,	$s7,	$a1
+	
+	# stack nonsense (check for a collision)
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	jal check_collision
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	# draw the frog
 	sw	$s2,	0($s7)	# source, offset(destination)
 	sw	$s2,	4($s7)
 	sw	$s2,	8($s7)
@@ -160,8 +238,49 @@ draw_frog:
 	
 	jr $ra
 
-########################################################
+draw_vehicles:
+	# draw car
+	beq	$t1,	116,	wrap_handler_vehicle # it checks the left corner so we have to adjust for taht
+	add	$s7,	$s7,	$t1
+	sw	$s2,	0($s7)	
+	sw	$s2,	4($s7)	
+	sw	$s2,	8($s7)
+	sw	$s2,	12($s7)
+	sw	$s2,	16($s7)
+	sw	$s2,	20($s7)
+	sw	$s2,	128($s7)	
+	sw	$s2,	132($s7)
+	sw	$s2,	136($s7)	
+	sw	$s2,	140($s7)
+	sw	$s2,	144($s7)
+	sw	$s2,	148($s7)
+	sw	$s2,	256($s7)	
+	sw	$s2,	260($s7)
+	sw	$s2,	264($s7)	
+	sw	$s2,	268($s7)
+	sw	$s2,	272($s7)
+	sw	$s2,	276($s7)
+	# reset s7
+	sub	$s7,	$s7,	$t1
+	jr $ra
 
+########################################################
+wrap_handler_vehicle:
+	subi	$t1,	$t1,	128
+	j draw_vehicles
+
+wrap_handler_horizontal:
+	# this will not loop infinitely, since when we jump to frog a0 has changed.
+	add	$a0,	$zero,	$zero
+	addi	$a0,	$zero,	-8
+	addi	$a1,	$zero,	128
+	j draw_frog
+
+wrap_handler_vertical:
+	# do not move if we are trying to escape the bounds
+	addi	$a0,	$a0,	0
+	addi	$a1,	$a1,	0
+	j draw_frog
 
 
 ########################################################
