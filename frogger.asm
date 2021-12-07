@@ -42,17 +42,17 @@ displayAddress: .word 0x10008000
 i:	.space	4	# random loop var
 frogX:	.word	60
 frogY:	.word	3456
-vehicle_space:	.space	36	# 3x3 = 9 (3x3 vehicles), 9 * 2 = 18 (2 vehicles) 18 *2 = 36 (2 rows)
+vehicle_space:	.space	60	# 5x3 = 15 (5x3 vehicles), 15 * 2 = 30 (2 vehicles) 30 *2 = 60 (2 rows)
+log_space:	.space	60	# 5x3 = 15 (5x3 vehicles), 15 * 2 = 30 (2 vehicles) 30 *2 = 60 (2 rows)
 
 .text
 lw $s7, displayAddress
-li $s5, 0x00ff00 # green
-li $s4, 0x0000ff # blue
-li $s3, 0x686868 # grey
-li $s2, 0xffffff # white
 
 add	$t1,	$zero,	$zero
 add	$t5,	$zero,	$zero
+add	$t4,	$zero,	$zero
+add	$t3,	$zero,	$zero
+add	$k1,	$zero,	$zero 	# lives
 
 # temp variable: $s6
 # $t2, $t8: keyboard input
@@ -68,15 +68,14 @@ keyboard_input:
 	j main	# if we don't get a valid input go to main again
 
 respond_to_W:
-	#beq 	$a1,	$zero,	wrap_handler_vertical
 	# increment by 8
 	addi	$a0,	$a0,	0
 	addi	$a1,	$a1,	-128
+	beq 	$a1,	$zero,	wrap_handler_vertical
 	j main
 
 respond_to_A:
 	beq 	$a0,	-128,	wrap_handler_horizontal
-	beq	$a0,	$zero,	wrap_handler_horizontal
 	# increment by 8
 	addi	$a0,	$a0,	-8
 	addi	$a1,	$a1,	0
@@ -99,6 +98,20 @@ respond_to_D:
 	
 	j main
 
+lives:
+	# reset frog
+	lw	$s7,	displayAddress	#reset display addr
+	la	$k0,	frogX		#load addr of frog_x
+	la	$t9,	frogY		#load addr of frog_y
+	
+	# reset position of frog movement
+	add	$a0,	$zero,	$zero
+	add	$a1,	$zero,	$zero
+	
+	jal 	draw_frog
+	addi	$s5,	$s5,	1
+	beq	$s5,	3,	Exit
+
 # Main
 main:	
 	# check for keyboard input
@@ -114,7 +127,8 @@ main:
 	
 	addi 	$t2,	$t2,	0 	
 	addi	$t9,	$t9,	192
-	add	$a3,	$zero,	$s5
+	
+	li	$a3,	0xff0000
 	jal draw_rect_loop
 	
 	### Water
@@ -126,7 +140,8 @@ main:
 	
 	addi 	$t2,	$t2,	192	
 	addi	$t9,	$t9,	384
-	add	$a3,	$zero,	$s4
+	
+	li	$a3,	0x0000ff	# blue
 	jal draw_rect_loop
 	### Safe
 	la	$t0,	i		#load addr of i
@@ -137,7 +152,8 @@ main:
 	
 	addi 	$t2,	$t2,	384	
 	addi	$t9,	$t9,	576
-	add	$a3,	$zero,	$s5
+	
+	li	$a3,	0x00ff00
 	jal draw_rect_loop
 	### Road
 	la	$t0,	i		#load addr of i
@@ -148,7 +164,8 @@ main:
 	
 	addi 	$t2,	$t2,	576	
 	addi	$t9,	$t9,	768
-	add	$a3,	$zero,	$s3
+	
+	li	$a3,	0x686868	# grey
 	jal draw_rect_loop
 	
 	### Start
@@ -160,24 +177,63 @@ main:
 	
 	addi 	$t2,	$t2,	768	
 	addi	$t9,	$t9,	960
-	add	$a3,	$zero,	$s5
+	
+	li	$a3,	0x00ff00
 	jal draw_rect_loop
 	
-	### Draw Vehicles
+	### Draw logs
+	li $a3, 0xffffff	# white
+	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	768	#increment to the desired spot.
 	add	$t1,	$t1,	4
 	jal draw_vehicles
 	
 	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	832	#increment to the desired spot.
+#	add	$t3,	$t3,	4
+	jal draw_vehicles_indent
+	
+	li 	$a3,	0xf3f6f4 
+	
+	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	1148	#increment to the desired spot.
-	add	$t5,	$t5,	-4
+	add	$t5,	$t5,	4
 	jal draw_vehicles_reverse
+	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	1200	#increment to the desired spot.
+#	add	$t4,	$t4,	4
+	jal draw_vehicles_indent_reverse
+	
+	### Draw Vehicles
+	
+	li	$a3,	0x0000ff # blue
+	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	2304	#increment to the desired spot.
+	add	$t1,	$t1,	4
+	jal draw_vehicles
+	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	2368	#increment to the desired spot.
+	add	$t3,	$t3,	4
+	jal draw_vehicles_indent
+	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	2688	#increment to the desired spot.
+	add	$t5,	$t5,	4
+	jal draw_vehicles_reverse
+	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	2752	#increment to the desired spot.
+	add	$t4,	$t4,	4
+	jal draw_vehicles_indent_reverse
 	
 	### Draw Frog
 	lw	$s7,	displayAddress	#reset display addr
-	la	$t3,	frogX		#load addr of frog_x
-	la	$t4,	frogY		#load addr of frog_y
+	la	$k0,	frogX		#load addr of frog_x
+	la	$t9,	frogY		#load addr of frog_y
 	
 	jal 	draw_frog
 	
@@ -194,7 +250,22 @@ main:
 check_collision:
 	# collison event
 	lw $s6, 0($s7) # load colour into t4
-	beq $s6, $s4, Exit # if the colour is blue exit
+	
+	li	$a3,	0x0000ff	# load blue
+	beq $s6, $a3, lives # if we touch car exit
+	
+	li	$a3,	0xff0000	# load red
+	beq $s6, $a3, Exit # if we touch goal exit
+	
+	# check if we are on a log
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	jal move_frog_with_log
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+
+#	beq $s6, $a3, move_frog_with_log 
+	
 	jr $ra
 
 #########################################################
@@ -209,10 +280,25 @@ draw_rect_loop:
 draw_rect_exit:
 	jr	$ra
 
+move_frog_with_log:
+	# top logs
+	li	$a3,	0xffffff		# load white
+	beq $s6, $a3, move_frog_with_log_right
+	# bot logs
+	li	$a3,	0xf3f6f4		# load white
+	beq $s6, $a3, move_frog_with_log_left
+	jr $ra
+move_frog_with_log_right: 
+	addi	$a0,	$a0,	4
+	jr $ra
+move_frog_with_log_left: 
+	addi	$a0,	$a0,	-4
+	jr $ra
+
 draw_frog:
 	# get value of frogX and frogY
-	lw	$s0,	0($t3)
-	lw	$s1,	0($t4)
+	lw	$s0,	0($k0)
+	lw	$s1,	0($t9)
 	add	$s7,	$s7,	$s0
 	add	$s7,	$s7,	$s1
 	
@@ -227,16 +313,18 @@ draw_frog:
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
 	
-	# draw the frog
-	sw	$s2,	0($s7)	# source, offset(destination)
-	sw	$s2,	4($s7)
-	sw	$s2,	8($s7)
-	sw	$s2,	128($s7)
-	sw	$s2,	132($s7)
-	sw	$s2,	136($s7)
-	sw	$s2,	256($s7)
-	sw	$s2,	260($s7)
-	sw	$s2,	264($s7)
+	# draw the frog	
+	li $a3,	0x8e7cc3	# purple
+	
+	sw	$a3,	0($s7)	# source, offset(destination)
+	sw	$a3,	4($s7)
+	sw	$a3,	8($s7)
+	sw	$a3,	128($s7)
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)
+	sw	$a3,	256($s7)
+	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)
 	
 	# reset the display address, since we don't want the bckgrnd to change.
 	sub	$s7,	$s7,	$a0
@@ -250,64 +338,129 @@ draw_vehicles:
 	# draw car
 	beq	$t1,	116,	wrap_handler_vehicle # it checks the left corner so we have to adjust for taht
 	add	$s7,	$s7,	$t1
-	sw	$s2,	0($s7)	
-	sw	$s2,	4($s7)	
-	sw	$s2,	8($s7)
-	sw	$s2,	12($s7)
-	sw	$s2,	16($s7)
-	sw	$s2,	20($s7)
-	sw	$s2,	24($s7)
-	sw	$s2,	28($s7)
-	sw	$s2,	128($s7)	
-	sw	$s2,	132($s7)
-	sw	$s2,	136($s7)	
-	sw	$s2,	140($s7)
-	sw	$s2,	144($s7)
-	sw	$s2,	148($s7)
-	sw	$s2,	152($s7)
-	sw	$s2,	156($s7)
-	sw	$s2,	256($s7)	
-	sw	$s2,	260($s7)
-	sw	$s2,	264($s7)	
-	sw	$s2,	268($s7)
-	sw	$s2,	272($s7)
-	sw	$s2,	276($s7)
-	sw	$s2,	280($s7)
-	sw	$s2,	284($s7)
+	
+	sw	$a3,	0($s7)	
+	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	24($s7)
+	sw	$a3,	28($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	152($s7)
+	sw	$a3,	156($s7)
+	sw	$a3,	256($s7)	
+	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	sw	$a3,	280($s7)
+	sw	$a3,	284($s7)
 	# reset s7
 	sub	$s7,	$s7,	$t1
 	jr $ra
 
 draw_vehicles_reverse:
 	# draw car
-	beq	$t5,	-4,	wrap_handler_vehicle_reverse # it checks the left corner so we have to adjust for taht
-	add	$s7,	$s7,	$t5
-	sw	$s2,	0($s7)	
-	sw	$s2,	4($s7)	
-	sw	$s2,	8($s7)
-	sw	$s2,	12($s7)
-	sw	$s2,	16($s7)
-	sw	$s2,	20($s7)
-	sw	$s2,	24($s7)
-	sw	$s2,	28($s7)
-	sw	$s2,	128($s7)	
-	sw	$s2,	132($s7)
-	sw	$s2,	136($s7)	
-	sw	$s2,	140($s7)
-	sw	$s2,	144($s7)
-	sw	$s2,	148($s7)
-	sw	$s2,	152($s7)
-	sw	$s2,	156($s7)
-	sw	$s2,	256($s7)	
-	sw	$s2,	260($s7)
-	sw	$s2,	264($s7)	
-	sw	$s2,	268($s7)
-	sw	$s2,	272($s7)
-	sw	$s2,	276($s7)
-	sw	$s2,	280($s7)
-	sw	$s2,	284($s7)
-	# reset s7
+	beq	$t5,	44,	wrap_handler_vehicle_reverse # it checks the left corner so we have to adjust for taht
 	sub	$s7,	$s7,	$t5
+	sw	$a3,	0($s7)	
+	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	24($s7)
+	sw	$a3,	28($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	152($s7)
+	sw	$a3,	156($s7)
+	sw	$a3,	256($s7)	
+	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	sw	$a3,	280($s7)
+	sw	$a3,	284($s7)
+	# reset s7
+	add	$s7,	$s7,	$t5
+	jr $ra
+	
+draw_vehicles_indent:
+	# draw car
+	beq	$t3,	52,	wrap_handler_vehicle_indent # it checks the left corner so we have to adjust for taht
+	add	$s7,	$s7,	$t3
+	sw	$a3,	0($s7)	
+	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	24($s7)
+	sw	$a3,	28($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	152($s7)
+	sw	$a3,	156($s7)
+	sw	$a3,	256($s7)	
+	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	sw	$a3,	280($s7)
+	sw	$a3,	284($s7)
+	# reset s7
+	sub	$s7,	$s7,	$t3
+	jr $ra
+
+draw_vehicles_indent_reverse:
+	# draw car
+	beq	$t4,	52,	wrap_handler_vehicle_indent_reverse # it checks the left corner so we have to adjust for taht
+	sub	$s7,	$s7,	$t4
+	sw	$a3,	0($s7)	
+	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	24($s7)
+	sw	$a3,	28($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	152($s7)
+	sw	$a3,	156($s7)
+	sw	$a3,	256($s7)	
+	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	sw	$a3,	280($s7)
+	sw	$a3,	284($s7)
+	# reset s7
+	add	$s7,	$s7,	$t4
 	jr $ra
 ########################################################
 wrap_handler_vehicle:
@@ -315,8 +468,17 @@ wrap_handler_vehicle:
 	j draw_vehicles
 
 wrap_handler_vehicle_reverse:
-	addi	$t5,	$t5,	128
-	j draw_vehicles
+	subi	$t5,	$t5,	128
+	j draw_vehicles_reverse
+
+wrap_handler_vehicle_indent:
+	subi	$t3,	$t3,	128
+	j draw_vehicles_indent
+
+wrap_handler_vehicle_indent_reverse:
+	subi	$t4,	$t4,	128
+	j draw_vehicles_indent_reverse
+
 
 wrap_handler_horizontal:
 	# this will not loop infinitely, since when we jump to frog a0 has changed.
