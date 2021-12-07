@@ -52,6 +52,7 @@ li $s3, 0x686868 # grey
 li $s2, 0xffffff # white
 
 add	$t1,	$zero,	$zero
+add	$t5,	$zero,	$zero
 
 # temp variable: $s6
 # $t2, $t8: keyboard input
@@ -67,7 +68,7 @@ keyboard_input:
 	j main	# if we don't get a valid input go to main again
 
 respond_to_W:
-	beq 	$a1,	$zero,	wrap_handler_vertical
+	#beq 	$a1,	$zero,	wrap_handler_vertical
 	# increment by 8
 	addi	$a0,	$a0,	0
 	addi	$a1,	$a1,	-128
@@ -168,6 +169,11 @@ main:
 	add	$t1,	$t1,	4
 	jal draw_vehicles
 	
+	lw	$s7,	displayAddress	#reset display addr
+	addi 	$s7,	$s7,	1148	#increment to the desired spot.
+	add	$t5,	$t5,	-4
+	jal draw_vehicles_reverse
+	
 	### Draw Frog
 	lw	$s7,	displayAddress	#reset display addr
 	la	$t3,	frogX		#load addr of frog_x
@@ -178,7 +184,7 @@ main:
 	### Sleep
 	add	$s6,	$a0,	$zero 	# temporarily save a0
 	li $v0, 32	
-	li $a0, 200	#TODO: use 32 for 60 fps
+	li $a0, 500			#TODO: use 32 for 60 fps
 	syscall
 	add	$a0,	$s6,	$zero 	# reset a0
 	
@@ -187,8 +193,8 @@ main:
 #########################################################
 check_collision:
 	# collison event
-	lw $t4, 0($s7) # load colour into t4
-	beq $t4, $s4, Exit # if the colour is blue exit
+	lw $s6, 0($s7) # load colour into t4
+	beq $s6, $s4, Exit # if the colour is blue exit
 	jr $ra
 
 #########################################################
@@ -200,8 +206,6 @@ draw_rect_loop:
 	addi	$t2,	$t2,	1	# increment the loop condition
 	j draw_rect_loop
 
-draw_log_loop:
-
 draw_rect_exit:
 	jr	$ra
 
@@ -209,6 +213,8 @@ draw_frog:
 	# get value of frogX and frogY
 	lw	$s0,	0($t3)
 	lw	$s1,	0($t4)
+	add	$s7,	$s7,	$s0
+	add	$s7,	$s7,	$s1
 	
 	# s7 gets changed
 	add	$s7,	$s7,	$a0	
@@ -235,6 +241,8 @@ draw_frog:
 	# reset the display address, since we don't want the bckgrnd to change.
 	sub	$s7,	$s7,	$a0
 	sub	$s7,	$s7,	$a1
+	sub	$s7,	$s7,	$s0
+	sub	$s7,	$s7,	$s1
 	
 	jr $ra
 
@@ -248,25 +256,66 @@ draw_vehicles:
 	sw	$s2,	12($s7)
 	sw	$s2,	16($s7)
 	sw	$s2,	20($s7)
+	sw	$s2,	24($s7)
+	sw	$s2,	28($s7)
 	sw	$s2,	128($s7)	
 	sw	$s2,	132($s7)
 	sw	$s2,	136($s7)	
 	sw	$s2,	140($s7)
 	sw	$s2,	144($s7)
 	sw	$s2,	148($s7)
+	sw	$s2,	152($s7)
+	sw	$s2,	156($s7)
 	sw	$s2,	256($s7)	
 	sw	$s2,	260($s7)
 	sw	$s2,	264($s7)	
 	sw	$s2,	268($s7)
 	sw	$s2,	272($s7)
 	sw	$s2,	276($s7)
+	sw	$s2,	280($s7)
+	sw	$s2,	284($s7)
 	# reset s7
 	sub	$s7,	$s7,	$t1
 	jr $ra
 
+draw_vehicles_reverse:
+	# draw car
+	beq	$t5,	-4,	wrap_handler_vehicle_reverse # it checks the left corner so we have to adjust for taht
+	add	$s7,	$s7,	$t5
+	sw	$s2,	0($s7)	
+	sw	$s2,	4($s7)	
+	sw	$s2,	8($s7)
+	sw	$s2,	12($s7)
+	sw	$s2,	16($s7)
+	sw	$s2,	20($s7)
+	sw	$s2,	24($s7)
+	sw	$s2,	28($s7)
+	sw	$s2,	128($s7)	
+	sw	$s2,	132($s7)
+	sw	$s2,	136($s7)	
+	sw	$s2,	140($s7)
+	sw	$s2,	144($s7)
+	sw	$s2,	148($s7)
+	sw	$s2,	152($s7)
+	sw	$s2,	156($s7)
+	sw	$s2,	256($s7)	
+	sw	$s2,	260($s7)
+	sw	$s2,	264($s7)	
+	sw	$s2,	268($s7)
+	sw	$s2,	272($s7)
+	sw	$s2,	276($s7)
+	sw	$s2,	280($s7)
+	sw	$s2,	284($s7)
+	# reset s7
+	sub	$s7,	$s7,	$t5
+	jr $ra
 ########################################################
 wrap_handler_vehicle:
 	subi	$t1,	$t1,	128
+	j draw_vehicles
+
+wrap_handler_vehicle_reverse:
+	addi	$t5,	$t5,	128
 	j draw_vehicles
 
 wrap_handler_horizontal:
