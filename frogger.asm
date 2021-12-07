@@ -15,16 +15,19 @@
 # Which milestone is reached in this submission?
 # (See the assignment handout for descriptions of the milestones)
 # - Milestone 1/2/3/4/5 (choose the one the applies)
+# Milestone 4
 #
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
+# 1. Objects like Arcade
+# 2. Different log speeds
+# 3. Sound
 # ... (add more if necessary)
+# no more :(
 ## Any additional information that the TA needs to know:
-# - (write here, if any)
-#
+# - It will be evident in the demo but the frog jumps two units intstead of one.
+# This is because it is easier for the player, 1 unit is hard.
+# - The black bar on the bottom was intentional, it was space intended to show the score.
 #####################################################################
 
 # Demo for painting
@@ -53,7 +56,6 @@ move_loudness:  .byte	64
 win_length:	.byte	1000
 move_instrument: .byte  58
 
-
 .text
 lw $s7, displayAddress
 
@@ -62,11 +64,12 @@ add	$t5,	$zero,	$zero
 add	$t4,	$zero,	$zero
 add	$t3,	$zero,	$zero
 add	$k1,	$zero,	$zero 	# lives
+add	$s4,	$zero,	$zero
 
 # temp variable: $s6
 # $t2, $t8: keyboard input
 # $a0, $a1 used for moving frog
-# 			
+# 
 		
 keyboard_input:
 	lw $t2, 0xffff0004
@@ -91,6 +94,9 @@ respond_to_W:
 	
 	addi	$a0,	$a0,	0
 	addi	$a1,	$a1,	-256
+	
+	addi     $s4,	$s4 	10
+	
 	beq 	$a1,	$zero,	wrap_handler_vertical
 	j main
 
@@ -124,6 +130,8 @@ respond_to_S:
 	
 	add	$a0,	$zero,	$s6
 	add	$a1,	$zero,	$t7
+	
+	addi     $s4,	$s4 	-10
 	
 	beq 	$a1,	3456,	wrap_handler_vertical
 	# increment by 8
@@ -185,8 +193,6 @@ main:
 	beq $t8, 1, keyboard_input
 	
 	### Goal Region
-	la	$t0,	i		#load addr of i
-	sw	$zero,	0($t0)
 	
 	lw	$t2,	displayAddress	#reset display addr
 	lw	$t9,	displayAddress	#reset display addr
@@ -199,9 +205,6 @@ main:
 	jal draw_square
 	
 	### Water
-	la	$t0,	i		#load addr of i
-	sw	$zero,	0($t0)
-	
 	lw	$t2,	displayAddress	#reset display addr
 	lw	$t9,	displayAddress	#reset display addr
 	
@@ -211,8 +214,6 @@ main:
 	li	$a3,	0x0000ff	# blue
 	jal draw_rect_loop
 	### Safe
-	la	$t0,	i		#load addr of i
-	sw	$zero,	0($t0)
 	
 	lw	$t2,	displayAddress	#reset display addr
 	lw	$t9,	displayAddress	#reset display addr
@@ -223,9 +224,6 @@ main:
 	li	$a3,	0x00ff00
 	jal draw_rect_loop
 	### Road
-	la	$t0,	i		#load addr of i
-	sw	$zero,	0($t0)
-	
 	lw	$t2,	displayAddress	#reset display addr
 	lw	$t9,	displayAddress	#reset display addr
 	
@@ -253,25 +251,25 @@ main:
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	768	#increment to the desired spot.
-#	add	$t1,	$t1,	4
-	jal draw_vehicles
+	add	$t1,	$t1,	4
+	jal draw_log
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	832	#increment to the desired spot.
-#	add	$t3,	$t3,	4
-	jal draw_vehicles_indent
+	add	$t3,	$t3,	4
+	jal draw_log_indent
 	
 	li 	$a3,	0xdeb887 
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	1148	#increment to the desired spot.
-#	add	$t5,	$t5,	4
-	jal draw_vehicles_reverse
+	add	$t5,	$t5,	4
+	jal draw_log_reverse
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	1200	#increment to the desired spot.
-#	add	$t4,	$t4,	4
-	jal draw_vehicles_indent_reverse
+	add	$t4,	$t4,	4
+	jal draw_log_indent_reverse
 	
 	### Draw Vehicles
 	
@@ -287,10 +285,12 @@ main:
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	2688	#increment to the desired spot.
+	add	$t5,	$t5,	4
 	jal draw_vehicles_reverse
 	
 	lw	$s7,	displayAddress	#reset display addr
 	addi 	$s7,	$s7,	2752	#increment to the desired spot.
+	add	$t4,	$t4,	4
 	jal draw_vehicles_indent_reverse
 	
 	### Draw Frog
@@ -299,11 +299,12 @@ main:
 	la	$t9,	frogY		#load addr of frog_y
 	
 	jal 	draw_frog
+
 	
 	### Sleep
 	add	$s6,	$a0,	$zero 	# temporarily save a0
 	li $v0, 32	
-	li $a0, 100			#TODO: use 32 for 60 fps
+	li $a0, 32			#TODO: use 32 for 60 fps
 	syscall
 	add	$a0,	$s6,	$zero 	# reset a0
 	
@@ -372,7 +373,6 @@ draw_square:
 	sw 	$a3, 	4($s7)		# draw rect
 	addi	$s7,	$s7,	96
 	
-	
 	jr	$ra
 
 move_frog_with_log:
@@ -384,10 +384,10 @@ move_frog_with_log:
 	beq $s6, $a3, move_frog_with_log_left
 	jr $ra
 move_frog_with_log_right: 
-	#addi	$a0,	$a0,	4
+	addi	$a0,	$a0,	4
 	jr $ra
 move_frog_with_log_left: 
-	#addi	$a0,	$a0,	-4
+	addi	$a0,	$a0,	-8
 	jr $ra
 
 draw_frog:
@@ -434,6 +434,110 @@ draw_vehicles:
 	beq	$t1,	128,	wrap_handler_vehicle # it checks the left corner so we have to adjust for taht
 	add	$s7,	$s7,	$t1
 	sw	$a3,	0($s7)	
+#	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+#	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	256($s7)	
+#	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+#	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	# reset s7
+	sub	$s7,	$s7,	$t1
+	jr $ra
+
+draw_vehicles_reverse:
+	# draw car
+	beq	$t5,	4,	wrap_handler_vehicle_reverse # it checks the left corner so we have to adjust for taht
+	sub	$s7,	$s7,	$t5
+	sw	$a3,	0($s7)	
+#	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+#	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	256($s7)	
+#	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+#	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	# reset s7
+	add	$s7,	$s7,	$t5
+	jr $ra
+	
+draw_vehicles_indent:
+	# draw car
+	beq	$t3,	60,	wrap_handler_vehicle_indent # it checks the left corner so we have to adjust for taht
+	add	$s7,	$s7,	$t3
+	sw	$a3,	0($s7)	
+#	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+#	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	256($s7)	
+#	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+#	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	# reset s7
+	sub	$s7,	$s7,	$t3
+	jr $ra
+
+draw_vehicles_indent_reverse:
+	# draw car
+	beq	$t4,	72,	wrap_handler_vehicle_indent_reverse # it checks the left corner so we have to adjust for taht
+	sub	$s7,	$s7,	$t4
+	sw	$a3,	0($s7)	
+#	sw	$a3,	4($s7)	
+	sw	$a3,	8($s7)
+	sw	$a3,	12($s7)
+#	sw	$a3,	16($s7)
+	sw	$a3,	20($s7)
+	sw	$a3,	128($s7)	
+	sw	$a3,	132($s7)
+	sw	$a3,	136($s7)	
+	sw	$a3,	140($s7)
+	sw	$a3,	144($s7)
+	sw	$a3,	148($s7)
+	sw	$a3,	256($s7)	
+#	sw	$a3,	260($s7)
+	sw	$a3,	264($s7)	
+	sw	$a3,	268($s7)
+#	sw	$a3,	272($s7)
+	sw	$a3,	276($s7)
+	# reset s7
+	add	$s7,	$s7,	$t4
+	jr $ra
+
+draw_log:
+	# draw car
+	beq	$t1,	128,	wrap_handler_vehicle # it checks the left corner so we have to adjust for taht
+	add	$s7,	$s7,	$t1
+	sw	$a3,	0($s7)	
 	sw	$a3,	4($s7)	
 	sw	$a3,	8($s7)
 	sw	$a3,	12($s7)
@@ -455,7 +559,7 @@ draw_vehicles:
 	sub	$s7,	$s7,	$t1
 	jr $ra
 
-draw_vehicles_reverse:
+draw_log_reverse:
 	# draw car
 	beq	$t5,	4,	wrap_handler_vehicle_reverse # it checks the left corner so we have to adjust for taht
 	sub	$s7,	$s7,	$t5
@@ -481,7 +585,7 @@ draw_vehicles_reverse:
 	add	$s7,	$s7,	$t5
 	jr $ra
 	
-draw_vehicles_indent:
+draw_log_indent:
 	# draw car
 	beq	$t3,	60,	wrap_handler_vehicle_indent # it checks the left corner so we have to adjust for taht
 	add	$s7,	$s7,	$t3
@@ -507,7 +611,7 @@ draw_vehicles_indent:
 	sub	$s7,	$s7,	$t3
 	jr $ra
 
-draw_vehicles_indent_reverse:
+draw_log_indent_reverse:
 	# draw car
 	beq	$t4,	72,	wrap_handler_vehicle_indent_reverse # it checks the left corner so we have to adjust for taht
 	sub	$s7,	$s7,	$t4
@@ -532,7 +636,7 @@ draw_vehicles_indent_reverse:
 	# reset s7
 	add	$s7,	$s7,	$t4
 	jr $ra
-	
+
 ########################################################
 wrap_handler_vehicle:
 	subi	$t1,	$t1, 	128
@@ -563,7 +667,6 @@ wrap_handler_vertical:
 	addi	$a0,	$a0,	0
 	addi	$a1,	$a1,	0
 	j draw_frog
-
 
 ########################################################
 # Exit Function	
